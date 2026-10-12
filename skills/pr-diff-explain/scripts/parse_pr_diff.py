@@ -128,36 +128,35 @@ def parse_diff(text):
 
 
 def _finish(block):
-    """Put the comment on the first changed line. Later lines stay in the body only."""
+    """Put the review comment on the last changed line, at the end of the hunk."""
     added = [item for item in block["lines"] if item["kind"] == "add"]
     removed = [item for item in block["lines"] if item["kind"] == "del"]
-    # Line numbers let a large new file get one comment per function, on that function's first line.
+    changed = [item for item in block["lines"] if item["kind"] != "context"]
+    # Line numbers let a large new file get one comment per function, on that function's last line.
     record = {
         "header": block["header"],
         "added": [item["text"] for item in added],
         "removed": [item["text"] for item in removed],
-        "changed_lines": _changed_lines(
-            [item for item in block["lines"] if item["kind"] != "context"]
-        ),
+        "changed_lines": _changed_lines(changed),
         "tokens": _tokens(added + removed),
     }
-    if added:
-        start = added[0]["new_line"]
-        side = "RIGHT"
-    elif removed:
-        start = removed[0]["old_line"]
-        side = "LEFT"
-    else:
+    if not changed:
         record["anchor"] = "review_body"
         return record
+    # Comment sits at the block end, on the last added or removed line in this hunk.
+    last = changed[-1]
+    if last["kind"] == "add":
+        record["side"] = "RIGHT"
+        record["line"] = last["new_line"]
+    else:
+        record["side"] = "LEFT"
+        record["line"] = last["old_line"]
     record["anchor"] = "line"
-    record["side"] = side
-    record["line"] = start
     return record
 
 
 def _changed_lines(items):
-    """Keep each changed line's number so a split comment can name its first line."""
+    """Keep each changed line's number so a split comment can name its last line."""
     rows = []
     for item in items:
         row = {"kind": item["kind"], "text": item["text"]}
@@ -277,6 +276,13 @@ diff --git a/src/one.ts b/src/one.ts
 -keep
 +keep
 +extra
+diff --git a/src/end.ts b/src/end.ts
+--- a/src/end.ts
++++ b/src/end.ts
+@@ -4,2 +4,1 @@
+-old
++new
+-tail
 """
     blocks = parse_diff(sample)
     by_id = {block["id"]: block for block in blocks}
@@ -285,20 +291,24 @@ diff --git a/src/one.ts b/src/one.ts
         "src/old.ts#1",
         "src/pic.bin#file",
         "src/one.ts#1",
+        "src/end.ts#1",
     ], list(by_id)
     cap = by_id["src/limit.ts#1"]
-    assert cap["side"] == "RIGHT" and cap["line"] == 2
+    assert cap["side"] == "RIGHT" and cap["line"] == 4
     assert "start_line" not in cap
     assert cap["changed_lines"][1]["kind"] == "add" and cap["changed_lines"][1]["new_line"] == 2
     assert "remaining" in cap["tokens"] and "limit" in cap["tokens"]
     assert "0" in cap["tokens"]
     assert "return" not in cap["tokens"]
     gone = by_id["src/old.ts#1"]
-    assert gone["side"] == "LEFT" and gone["line"] == 2
+    assert gone["side"] == "LEFT" and gone["line"] == 3
     picture = by_id["src/pic.bin#file"]
     assert picture["anchor"] == "review_body" and picture["path"] == "src/pic.bin"
     one = by_id["src/one.ts#1"]
-    assert one["side"] == "RIGHT" and one["line"] == 10
+    assert one["side"] == "RIGHT" and one["line"] == 11
+    # Hunk ends on a deleted line, so the comment sits on that line, not on the earlier add.
+    end = by_id["src/end.ts#1"]
+    assert end["side"] == "LEFT" and end["line"] == 5
     print("ok")
 
 

@@ -2,12 +2,13 @@
 name: pr-diff-explain
 description: >-
   Writes a review comment on every diff block of a GitHub pull request
-  or GitLab merge request. A very large block, such as a new file, can
+  or GitLab merge request. The comment sits on the last changed line of
+  that block or piece. A very large block, such as a new file, can
   get several comments, one per piece, so reviewers can understand AI-written changes
   without re-reading the product or the codebase. A full comment is concise
-  pseudocode that keeps every changed name, literal, and operator, with each
-  name's purpose in parentheses. Add a pattern line or a diagram when
-  one fits the change.
+  pseudocode in simple Indian English. It keeps every changed name, literal,
+  and operator, with each name's purpose in parentheses. Add a pattern line
+  or a diagram when one fits the change.
   If that review is already on the pull request, tell the user and stop.
   Count the diff, then spawn that many sub-agents and post their drafts
   yourself. Run only inside
@@ -18,14 +19,14 @@ description: >-
 license: MIT
 compatibility: Requires Python 3, a local checkout of the change's repo, and a logged-in GitHub CLI (gh) or GitLab CLI (glab).
 metadata:
-  version: "1.12.0"
+  version: "1.13.0"
 ---
 
 # PR diff explain
 
 Explain a GitHub pull request or a GitLab merge request. Do not review it for style, bugs, or approval.
 
-A **diff block** is one `@@` hunk. A small block gets one comment. A very large block gets several comments, one per piece. A new file is the usual case. The comment sits on the first changed line of that block or piece only. It does not span the later lines.
+A **diff block** is one `@@` hunk. A small block gets one comment. A very large block gets several comments, one per piece. A new file is the usual case. The comment sits on the last changed line of that block or piece only. It does not span the earlier lines.
 
 ## Host tool
 
@@ -103,7 +104,7 @@ Re-fetch the latest commit of the change immediately before posting. On a line e
 
 List comments that contain `PR-DIFF-EXPLAIN-AGENT`, `PR-DIFF-EXPLAIN AGENT:`, or `<!-- pr-diff-explain -->`. The list commands are in the posting docs.
 
-A block is already explained when that marker is on the same path and the same first line.
+A block or piece is already explained when that marker is on the same path and on any changed line of that piece. The new comment still sits on the last changed line. A marker on a later piece does not cover earlier pieces.
 
 - Every block is already explained. Stop. Tell the user this review is already on the pull request or merge request, and include the url. Do not draft. Do not post.
 - Some blocks are already explained. Tell the user which paths are done. Draft and post only the rest.
@@ -138,7 +139,7 @@ Split a block when one comment would hide later parts. Do this when the block is
 
 A piece is one function, class, component, or a short group of helpers that belong together. Example: a new `auth.ts` with `login`, `logout`, and `refresh` gets three comments, one on each function. A 12-line bugfix stays one comment.
 
-- Each comment sits on the first changed line of that piece. Take that number from `changed_lines`. Do not set `start_line`. The body still explains the whole piece.
+- Each comment sits on the last changed line of that piece. Take that number from `changed_lines`. Do not set `start_line`. The body still explains the whole piece.
 - Its tokens are the names and literals in that piece.
 - Pieces do not overlap, and together they cover every changed line in the block.
 - Do not split a short block, a lock file, or one straight function.
@@ -176,11 +177,11 @@ A lock file pins dependency versions (`package-lock.json`, `yarn.lock`, `Gemfile
 
 ## Pseudocode
 
-A reviewer must match the note to the diff token by token.
+A reviewer must match the note to the diff token by token. The words you add must stay very simple.
 
 - Keep every changed name, literal, operator, and call as written. `userId` stays `userId`. `Math.max` stays `Math.max`. `&&` stays `&&`.
-- Right after a name, add its purpose in parentheses: `limit (daily cap)`.
-- Purpose is the role of that name in this change, in plain words. Do not write only the type (`number`) unless the type is the change.
+- Right after a name, add its purpose in parentheses: `limit (max in one day)`.
+- Purpose is the role of that name in this change, in simple Indian English. Short everyday words. A new teammate should get it in one read. `limit (max in one day)` is good. `limit (per-diem instantiation quota)` is not. Do not write only the type (`number`) unless the type is the change.
 - Annotate a name the first time it appears in that comment. Repeat the purpose only when a later use could be mixed up with another name.
 - Keep argument order, defaults, and early exits.
 - One short line per step, in execution order.
@@ -194,7 +195,7 @@ if user in db
 ```
 
 ```text
-remaining (slots still free) = Math.max(0, limit (daily cap) - used (slots already taken))
+remaining (slots still left) = Math.max(0, limit (max in one day) - used (slots already taken))
 if remaining === 0
       return 0
 return remaining
@@ -219,6 +220,6 @@ Use the same names as the diff. About eight nodes or fewer. `flowchart TD`. No s
 - Every JSON block is covered. A small block is one comment. A split block's comments cover every changed line, with no overlap. `anchor: line` becomes a line comment. `anchor: review_body` is one line in the GitHub review summary, or a GitLab file comment with no line.
 - Every full source note includes every token for its own lines. A split comment does not repeat tokens from another piece.
 - Every source comment includes pseudocode. Pattern and diagram appear only when they fit that piece.
-- A comment that already has `PR-DIFF-EXPLAIN-AGENT`, `PR-DIFF-EXPLAIN AGENT:`, or `<!-- pr-diff-explain -->` on the same path and the same first line is left as-is. One comment on a file's last line does not cover earlier pieces.
+- A comment that already has `PR-DIFF-EXPLAIN-AGENT`, `PR-DIFF-EXPLAIN AGENT:`, or `<!-- pr-diff-explain -->` on the same path and on any changed line of that piece is left as-is. One comment on a later piece does not cover earlier pieces.
 
 Worked examples: [examples.md](references/examples.md).

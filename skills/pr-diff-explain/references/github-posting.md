@@ -18,7 +18,7 @@ gh api --paginate repos/<owner>/<repo>/pulls/<number>/comments \
   --jq '.[] | {path, line, side, html_url, body}'
 ```
 
-Skip a line comment when `body` contains `PR-DIFF-EXPLAIN-AGENT`, `PR-DIFF-EXPLAIN AGENT:`, or `<!-- pr-diff-explain -->`, and `path` plus `line` (the first line of that block or piece) match. A comment on a file's last line does not cover earlier pieces of a large diff.
+Skip a piece when `body` contains `PR-DIFF-EXPLAIN-AGENT`, `PR-DIFF-EXPLAIN AGENT:`, or `<!-- pr-diff-explain -->`, and `path` matches, and `line` is any changed line of that piece. The new comment still sits on the last changed line. A comment on a later piece does not cover earlier pieces.
 
 ## Review 1 — full notes only
 
@@ -44,15 +44,15 @@ gh api --method POST repos/<owner>/<repo>/pulls/<number>/reviews --input review.
       "path": "src/limit.ts",
       "body": "PR-DIFF-EXPLAIN-AGENT\n...",
       "side": "RIGHT",
-      "line": 2
+      "line": 4
     }
   ]
 }
 ```
 
-Do not send `start_line` or `start_side`. The comment sits on the first changed line only.
+Do not send `start_line` or `start_side`. The comment sits on the last changed line only.
 
-`side` is `RIGHT` for additions and `LEFT` for deletion-only blocks. `line` is the parser's first changed line. A split comment uses the first `changed_lines` number of its own piece. Do not invent a line.
+`side` follows that last line: `RIGHT` when it is an addition, `LEFT` when it is a deletion. `line` is the parser's last changed line. A split comment uses the last `changed_lines` number of its own piece. Do not invent a line.
 
 If the payload is rejected for size, split this review into batches of 20 comments.
 
@@ -60,8 +60,8 @@ If the payload is rejected for size, split this review into batches of 20 commen
 
 | API message | What to change |
 | --- | --- |
-| Line is not part of the diff | Set `line` to the next changed line in that piece from `changed_lines`. Do not add `start_line`. |
-| A line range was sent | Drop `start_line` and `start_side`. Keep `line` as the first changed line. |
+| Line is not part of the diff | Set `line` to the previous changed line in that piece from `changed_lines`. Walk back from the end. Do not add `start_line`. |
+| A line range was sent | Drop `start_line` and `start_side`. Keep `line` as the last changed line. |
 | Commit outdated | Re-fetch `headRefOid` and the diff, re-parse, post again once. |
 
 If the second try fails, leave that block in the chat output and say it was not posted. Do not attach it to a different file.

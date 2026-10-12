@@ -15,7 +15,7 @@ return remaining
 ~~~~markdown
 PR-DIFF-EXPLAIN-AGENT
 ```text
-remaining (slots still free) = Math.max(0, limit (daily cap) - used (slots already taken))
+remaining (slots still left) = Math.max(0, limit (max in one day) - used (slots already taken))
 if remaining === 0
       return 0
 return remaining
@@ -29,7 +29,7 @@ return remaining
 This block checks a role, not the cap. It gets its own pseudocode.
 
 ```text
-if user.role (permission level) !== "admin"
+if user.role (what this person can do) !== "admin"
       return
 ```
 
