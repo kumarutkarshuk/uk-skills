@@ -21,11 +21,11 @@ Use `sha` as the latest commit. Use `title`, `description`, and `web_url` from t
 glab api "projects/:id/merge_requests/<id>/discussions"
 ```
 
-Skip a note when its body contains `PR-DIFF-EXPLAIN AGENT`, `PR-DIFF-EXPLAIN-AGENT`, or `<!-- pr-diff-explain -->`, and the discussion position matches that path and the first line of that block or piece. A note on a file's last line does not cover earlier pieces of a large diff.
+Skip a note when its body contains `PR-DIFF-EXPLAIN-AGENT`, `PR-DIFF-EXPLAIN AGENT:`, or `<!-- pr-diff-explain -->`, and the discussion position matches that path and the first line of that block or piece. A note on a file's last line does not cover earlier pieces of a large diff.
 
 ## Full notes
 
-The note sits on the first changed line only. Do not pass a start:end range. A split comment uses the first `changed_lines` number of its own piece. The body starts with `PR-DIFF-EXPLAIN AGENT` on its own line. The comment starts on the next line. Pass it quoted from the temp file so the shell does not cut the note at `<`.
+The note sits on the first changed line only. Do not pass a start:end range. A split comment uses the first `changed_lines` number of its own piece. The body starts with `PR-DIFF-EXPLAIN-AGENT` on its own line. The comment starts on the next line. If a new line is not possible, start with `PR-DIFF-EXPLAIN AGENT:`. Pass it quoted from the temp file so the shell does not cut the note at `<`.
 
 ```bash
 glab mr note create <id> --file <path> --line <line> -m "$(cat "$note")"

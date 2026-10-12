@@ -13,7 +13,7 @@ return remaining
 The PR body says create stops when the daily project cap is used up. `createProject` in `projects.ts` already returns early on that check.
 
 ~~~~markdown
-PR-DIFF-EXPLAIN AGENT
+PR-DIFF-EXPLAIN-AGENT
 Create stops when today's project cap is used up.
 
 **Pattern:** Current code already returns before create when the cap is hit. Same as `createProject` in `projects.ts`.
@@ -33,7 +33,7 @@ No diagram. One `if` is already clear.
 A later handler does the same cap check before create. The full note above is already on the PR.
 
 ```markdown
-PR-DIFF-EXPLAIN AGENT
+PR-DIFF-EXPLAIN-AGENT
 This was already explained in https://github.com/acme/app/pull/12#discussion_r100. Same daily cap check reused here.
 ```
 
@@ -72,6 +72,6 @@ remove also (second flag on that path)
 ## Format-only
 
 ```markdown
-PR-DIFF-EXPLAIN AGENT
+PR-DIFF-EXPLAIN-AGENT
 Indentation only. No behaviour change.
 ```

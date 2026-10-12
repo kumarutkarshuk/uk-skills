@@ -19,7 +19,7 @@ description: >-
 license: MIT
 compatibility: Requires Python 3, a local checkout of the change's repo, and a logged-in GitHub CLI (gh) or GitLab CLI (glab).
 metadata:
-  version: "1.9.0"
+  version: "1.10.0"
 ---
 
 # PR diff explain
@@ -103,7 +103,7 @@ Re-fetch the latest commit of the change immediately before posting. On a line e
 
 ## Already explained
 
-List comments that contain `PR-DIFF-EXPLAIN AGENT`, `PR-DIFF-EXPLAIN-AGENT`, or `<!-- pr-diff-explain -->`. The list commands are in the posting docs.
+List comments that contain `PR-DIFF-EXPLAIN-AGENT`, `PR-DIFF-EXPLAIN AGENT:`, or `<!-- pr-diff-explain -->`. The list commands are in the posting docs.
 
 A block is already explained when that marker is on the same path and the same first line.
 
@@ -141,10 +141,10 @@ A piece is one function, class, component, or a short group of helpers that belo
 
 ## Comment shape
 
-Every comment starts with this line, including references. The comment body starts on the next line. Leave a blank line between the product line, the pattern, and the pseudocode.
+Every comment starts with this line, including references. The comment body starts on the next line. Leave a blank line between the product line, the pattern, and the pseudocode. If a new line after the marker is not possible, use `PR-DIFF-EXPLAIN AGENT:` and start the comment after the colon.
 
 ```text
-PR-DIFF-EXPLAIN AGENT
+PR-DIFF-EXPLAIN-AGENT
 <comment starts here>
 ```
 
@@ -155,7 +155,7 @@ GitLab keeps that note. A note that starts with `<` is posted as only `<`.
 Use a section only when it has something true to say. Omit empty sections.
 
 ~~~~markdown
-PR-DIFF-EXPLAIN AGENT
+PR-DIFF-EXPLAIN-AGENT
 <one line of product behaviour>
 
 **Pattern:** <one or two lines>. Current code already does <this>. Same as `<file>`.
@@ -183,7 +183,7 @@ A confirmed product line and **Inferred** stay off the same claim. Add Mermaid o
 Use the user's words. No product line, no pattern, no pseudocode, no diagram.
 
 ```markdown
-PR-DIFF-EXPLAIN AGENT
+PR-DIFF-EXPLAIN-AGENT
 This was already explained in <url>. Same <one-line behaviour> reused here.
 ```
 
@@ -192,7 +192,7 @@ Name the behaviour (`Same daily cap check reused here.`). Do not say "same logic
 If the URL cannot be matched, still do not repeat the explanation:
 
 ```markdown
-PR-DIFF-EXPLAIN AGENT
+PR-DIFF-EXPLAIN-AGENT
 This was already explained on `<path>` line <n>. Same <one-line behaviour> reused here.
 ```
 
@@ -255,6 +255,6 @@ Use the same names as the diff. About eight nodes or fewer. `flowchart TD`. No s
 - Every full source note includes every token for its own lines. A split comment does not repeat tokens from another piece.
 - Reference notes contain `This was already explained` and no pseudocode.
 - No second full note for the same behaviour.
-- A comment that already has `PR-DIFF-EXPLAIN AGENT`, `PR-DIFF-EXPLAIN-AGENT`, or `<!-- pr-diff-explain -->` on the same path and the same first line is left as-is. One comment on a file's last line does not cover earlier pieces.
+- A comment that already has `PR-DIFF-EXPLAIN-AGENT`, `PR-DIFF-EXPLAIN AGENT:`, or `<!-- pr-diff-explain -->` on the same path and the same first line is left as-is. One comment on a file's last line does not cover earlier pieces.
 
 Worked examples: [examples.md](references/examples.md).
