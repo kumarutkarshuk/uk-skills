@@ -19,7 +19,7 @@ description: >-
 license: MIT
 compatibility: Requires Python 3, a local checkout of the change's repo, and a logged-in GitHub CLI (gh) or GitLab CLI (glab).
 metadata:
-  version: "1.7.0"
+  version: "1.9.0"
 ---
 
 # PR diff explain
@@ -65,7 +65,7 @@ Read docs and nearby code from the latest commit on that pull request or merge r
 ## Rules
 
 - Accuracy over brevity. Never drop a condition, argument, default, or early exit to make the note shorter.
-- Evidence over assumptions. A confirmed product line names its source. A guess is marked **Inferred**. Never present a guess as product fact.
+- Evidence over assumptions. A confirmed product line states the behaviour. A guess is marked **Inferred**. Never present a guess as product fact. The comment does not name a source.
 - Low noise. Same behaviour is explained once. Later blocks only point back.
 - Match behaviour, not formatting. Two different blocks can be the same check. Two similar `if`s can be different checks.
 - Explain in dependency order. A helper or shared check is explained before the blocks that use it. The first block in that order gets the full note.
@@ -97,12 +97,13 @@ The JSON is the full block list. Do not skip an object because it looks small. A
 8. Order blocks so a definition is before its callers. Group blocks that implement the same behaviour. The earliest block in that group is the full note. The rest are references.
 9. Draft every comment locally. Then run the checks below.
 10. Post full notes first. Read back their URLs. Post reference notes second, with those URLs. GitHub: [github-posting.md](references/github-posting.md). GitLab: [gitlab-posting.md](references/gitlab-posting.md).
+11. Delete the JSON this run created. See "Cleanup".
 
 Re-fetch the latest commit of the change immediately before posting. On a line error, follow that host's retry once. Do not loop.
 
 ## Already explained
 
-List comments that contain `PR-DIFF-EXPLAIN-AGENT` or `<!-- pr-diff-explain -->`. The list commands are in the posting docs.
+List comments that contain `PR-DIFF-EXPLAIN AGENT`, `PR-DIFF-EXPLAIN-AGENT`, or `<!-- pr-diff-explain -->`. The list commands are in the posting docs.
 
 A block is already explained when that marker is on the same path and the same first line.
 
@@ -122,6 +123,10 @@ Example: 20 files become about four sub-agents. The delegator posts one review.
 
 A smaller pull request stays with the current agent. When the host cannot spawn sub-agents, the current agent drafts the big pull request itself and tells the user the work stayed in one agent.
 
+## Cleanup
+
+Delete every JSON file this run wrote. That includes the parsed block list and `review.json`. Delete them after posting, and also when the run stops early. Keep them outside the project while they exist.
+
 ## Large diffs
 
 Split a block when one comment would hide later parts. Do this when the block is a new file with more than one piece, or when it has more than about 80 changed lines and more than one piece.
@@ -136,10 +141,11 @@ A piece is one function, class, component, or a short group of helpers that belo
 
 ## Comment shape
 
-Every comment starts with this line, including references:
+Every comment starts with this line, including references. The comment body starts on the next line. Leave a blank line between the product line, the pattern, and the pseudocode.
 
 ```text
-PR-DIFF-EXPLAIN-AGENT
+PR-DIFF-EXPLAIN AGENT
+<comment starts here>
 ```
 
 GitLab keeps that note. A note that starts with `<` is posted as only `<`.
@@ -149,8 +155,8 @@ GitLab keeps that note. A note that starts with `<` is posted as only `<`.
 Use a section only when it has something true to say. Omit empty sections.
 
 ~~~~markdown
-PR-DIFF-EXPLAIN-AGENT
-<one line of product behaviour>. Source: <PR body, issue, or file>.
+PR-DIFF-EXPLAIN AGENT
+<one line of product behaviour>
 
 **Pattern:** <one or two lines>. Current code already does <this>. Same as `<file>`.
 
@@ -177,7 +183,7 @@ A confirmed product line and **Inferred** stay off the same claim. Add Mermaid o
 Use the user's words. No product line, no pattern, no pseudocode, no diagram.
 
 ```markdown
-PR-DIFF-EXPLAIN-AGENT
+PR-DIFF-EXPLAIN AGENT
 This was already explained in <url>. Same <one-line behaviour> reused here.
 ```
 
@@ -186,7 +192,7 @@ Name the behaviour (`Same daily cap check reused here.`). Do not say "same logic
 If the URL cannot be matched, still do not repeat the explanation:
 
 ```markdown
-PR-DIFF-EXPLAIN-AGENT
+PR-DIFF-EXPLAIN AGENT
 This was already explained on `<path>` line <n>. Same <one-line behaviour> reused here.
 ```
 
@@ -204,12 +210,19 @@ A reviewer must match the note to the diff token by token.
 - Annotate a name the first time it appears in that comment. Repeat the purpose only when a later use could be mixed up with another name.
 - Keep argument order, defaults, and early exits.
 - One short line per step, in execution order.
+- Write Python-like lines. An `if` is its own line. The action is indented on the next line. No braces. No action on the `if` line.
 - Do not add behaviour that is not in the diff.
 - The `tokens` array on the block is the checklist. Every token appears in the pseudocode, outside the parentheses.
 
 ```text
+if user in db
+      do something
+```
+
+```text
 remaining (slots still free) = Math.max(0, limit (daily cap) - used (slots already taken))
-if remaining === 0: return 0
+if remaining === 0
+      return 0
 return remaining
 ```
 
@@ -242,6 +255,6 @@ Use the same names as the diff. About eight nodes or fewer. `flowchart TD`. No s
 - Every full source note includes every token for its own lines. A split comment does not repeat tokens from another piece.
 - Reference notes contain `This was already explained` and no pseudocode.
 - No second full note for the same behaviour.
-- A comment that already has `PR-DIFF-EXPLAIN-AGENT` or `<!-- pr-diff-explain -->` on the same path and the same first line is left as-is. One comment on a file's last line does not cover earlier pieces.
+- A comment that already has `PR-DIFF-EXPLAIN AGENT`, `PR-DIFF-EXPLAIN-AGENT`, or `<!-- pr-diff-explain -->` on the same path and the same first line is left as-is. One comment on a file's last line does not cover earlier pieces.
 
 Worked examples: [examples.md](references/examples.md).
