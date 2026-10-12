@@ -26,4 +26,4 @@ npx skills add kumarutkarshuk/uk-skills --skill pr-diff-explain
 
 | Skill | What it does |
 | --- | --- |
-| [pr-diff-explain](skills/pr-diff-explain/SKILL.md) | One concise pseudocode comment on every diff block. A very large diff, such as a new file, gets several comments, one per piece. Run it inside the repo that contains the GitHub pull request or GitLab merge request. Offers to install `gh` or `glab` and start login when that tool is missing. It explains changes. It does not approve the PR. |
+| [pr-diff-explain](skills/pr-diff-explain/SKILL.md) | One concise pseudocode comment on every diff block. A very large diff, such as a new file, gets several comments, one per piece. If that review is already posted, it tells you and stops. A big pull request is drafted by sub-agents and posted by the main agent. Run it inside the repo that contains the GitHub pull request or GitLab merge request. Offers to install `gh` or `glab` and start login when that tool is missing. It explains changes. It does not approve the PR. |

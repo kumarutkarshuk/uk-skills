@@ -18,7 +18,7 @@ gh api --paginate repos/<owner>/<repo>/pulls/<number>/comments \
   --jq '.[] | {path, line, side, html_url, body}'
 ```
 
-Skip a line comment when `body` contains `<!-- pr-diff-explain -->` and `path` plus `line` (the first line of that block or piece) match. A comment on a file's last line does not cover earlier pieces of a large diff.
+Skip a line comment when `body` contains `PR-DIFF-EXPLAIN-AGENT` or `<!-- pr-diff-explain -->`, and `path` plus `line` (the first line of that block or piece) match. A comment on a file's last line does not cover earlier pieces of a large diff.
 
 ## Review 1 — full notes only
 
@@ -42,7 +42,7 @@ gh api --method POST repos/<owner>/<repo>/pulls/<number>/reviews --input review.
   "comments": [
     {
       "path": "src/limit.ts",
-      "body": "<!-- pr-diff-explain -->\n...",
+      "body": "PR-DIFF-EXPLAIN-AGENT\n...",
       "side": "RIGHT",
       "line": 2
     }
