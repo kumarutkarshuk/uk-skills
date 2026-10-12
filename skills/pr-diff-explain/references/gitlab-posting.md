@@ -1,6 +1,6 @@
 # Posting on GitLab
 
-Use `glab` 1.94.0 or newer from the merge request repo, after the host and repo checks in `SKILL.md`. Line comments need `mr note create --line`, shipped in that release. Post full notes first, then reference notes, so the second set can link to real URLs.
+Use `glab` 1.94.0 or newer from the merge request repo, after the host and repo checks in `SKILL.md`. Line comments need `mr note create --line`, shipped in that release. Post the pseudocode comments.
 
 Do not run `glab mr approve`.
 
@@ -38,12 +38,6 @@ glab mr note create <id> --file <path> --old-line <line> -m "$(cat "$note")"
 ```
 
 A block with `anchor: review_body` is a file comment. Pass `--file` and no line flag. If the path is unknown, omit `--file` and put the path in the body.
-
-## Reference notes
-
-List discussions again. The link is `<web_url>#note_<note id>`.
-
-Post the reference sentence with `glab mr note create` on that block's file and line. Same line flags as a full note.
 
 ## Retry once
 

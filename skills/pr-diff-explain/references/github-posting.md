@@ -1,6 +1,6 @@
 # Posting the comments
 
-Use `gh` from the pull request repo, after the host and repo checks in `SKILL.md`. Post two reviews so reference notes can link to real comment URLs. Write `review.json` with `mktemp` outside the project. Delete it after the post, and also if the post fails.
+Use `gh` from the pull request repo, after the host and repo checks in `SKILL.md`. Post one review of the pseudocode comments. Write `review.json` with `mktemp` outside the project. Delete it after the post, and also if the post fails.
 
 ## Identity
 
@@ -25,7 +25,7 @@ Skip a line comment when `body` contains `PR-DIFF-EXPLAIN-AGENT`, `PR-DIFF-EXPLA
 `event` is `COMMENT`. The review `body` is required:
 
 ```text
-Pseudocode on each diff block. Repeated behaviour points at the first explanation.
+Pseudocode on each diff block.
 ```
 
 Add one extra sentence for each `review_body` block (binary, rename with no hunk): path and what changed.
@@ -38,7 +38,7 @@ gh api --method POST repos/<owner>/<repo>/pulls/<number>/reviews --input review.
 {
   "commit_id": "<headRefOid>",
   "event": "COMMENT",
-  "body": "Pseudocode on each diff block. Repeated behaviour points at the first explanation.",
+  "body": "Pseudocode on each diff block.",
   "comments": [
     {
       "path": "src/limit.ts",
@@ -54,17 +54,7 @@ Do not send `start_line` or `start_side`. The comment sits on the first changed 
 
 `side` is `RIGHT` for additions and `LEFT` for deletion-only blocks. `line` is the parser's first changed line. A split comment uses the first `changed_lines` number of its own piece. Do not invent a line.
 
-If the payload is rejected for size, split this review into batches of 20 comments. Finish every full-note batch before any reference note.
-
-## Review 2 — reference notes
-
-List comments again. Match each full note by `path`, `line`, and the marker. Put that `html_url` in the reference sentence.
-
-Post a second `COMMENT` review with only the reference comments. Review body:
-
-```text
-Pointers to explanations already posted on this PR.
-```
+If the payload is rejected for size, split this review into batches of 20 comments.
 
 ## 422 retry, once
 

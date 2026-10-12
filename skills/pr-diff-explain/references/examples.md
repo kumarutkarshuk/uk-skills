@@ -10,43 +10,30 @@ if (remaining === 0) return 0
 return remaining
 ```
 
-The PR body says create stops when the daily project cap is used up. `createProject` in `projects.ts` already returns early on that check.
+`createProject` in `projects.ts` already returns early on that check. One `if` needs no diagram.
 
 ~~~~markdown
 PR-DIFF-EXPLAIN-AGENT
-Create stops when today's project cap is used up.
-
-**Pattern:** Current code already returns before create when the cap is hit. Same as `createProject` in `projects.ts`.
-
 ```text
 remaining (slots still free) = Math.max(0, limit (daily cap) - used (slots already taken))
 if remaining === 0
       return 0
 return remaining
 ```
+
+**Pattern:** Current code already returns before create when the cap is hit. Same as `createProject` in `projects.ts`.
 ~~~~
-
-No diagram. One `if` is already clear.
-
-## Reference note
-
-A later handler does the same cap check before create. The full note above is already on the PR.
-
-```markdown
-PR-DIFF-EXPLAIN-AGENT
-This was already explained in https://github.com/acme/app/pull/12#discussion_r100. Same daily cap check reused here.
-```
 
 ## Not the same behaviour
 
-This block checks a role, not the cap. It gets its own full note. It does not point at the cap comment.
+This block checks a role, not the cap. It gets its own pseudocode.
 
 ```text
 if user.role (permission level) !== "admin"
       return
 ```
 
-## Diagram, only when order is hard
+## Diagram, when order is hard
 
 Use this when the block branches more than once or hands off across files. Same names as the diff.
 
@@ -55,9 +42,6 @@ flowchart TD
   A[remaining slots still free] --> B{remaining === 0}
   B -->|yes| C[return 0]
   B -->|no| D[createProject]
-  D --> E{role !== admin}
-  E -->|yes| F[return]
-  E -->|no| G[save]
 ```
 
 ## Deletion-only
@@ -71,7 +55,7 @@ remove also (second flag on that path)
 
 ## Format-only
 
-```markdown
+```text
 PR-DIFF-EXPLAIN-AGENT
-Indentation only. No behaviour change.
+indent
 ```

@@ -6,12 +6,11 @@ description: >-
   get several comments, one per piece, so reviewers can understand AI-written changes
   without re-reading the product or the codebase. A full comment is concise
   pseudocode that keeps every changed name, literal, and operator, with each
-  name's purpose in parentheses, plus a short product or
-  codebase-pattern note when one exists, and a small Mermaid diagram only
-  when the flow is still hard to see. Repeated behaviour gets "This was
-  already explained" with a link and no second write-up. If that
-  review is already on the pull request, tell the user and stop. On a
-  big pull request, spawn sub-agents and post their drafts yourself. Run only inside
+  name's purpose in parentheses. Add a pattern line or a diagram when
+  one fits the change.
+  If that review is already on the pull request, tell the user and stop.
+  Count the diff, then spawn that many sub-agents and post their drafts
+  yourself. Run only inside
   the git repo that contains the change. If gh or glab is missing or not
   logged in, offer to install it and start login. Use when the user
   asks to explain a PR or MR, comment on a diff, add pseudocode review
@@ -19,7 +18,7 @@ description: >-
 license: MIT
 compatibility: Requires Python 3, a local checkout of the change's repo, and a logged-in GitHub CLI (gh) or GitLab CLI (glab).
 metadata:
-  version: "1.10.0"
+  version: "1.12.0"
 ---
 
 # PR diff explain
@@ -65,10 +64,9 @@ Read docs and nearby code from the latest commit on that pull request or merge r
 ## Rules
 
 - Accuracy over brevity. Never drop a condition, argument, default, or early exit to make the note shorter.
-- Evidence over assumptions. A confirmed product line states the behaviour. A guess is marked **Inferred**. Never present a guess as product fact. The comment does not name a source.
-- Low noise. Same behaviour is explained once. Later blocks only point back.
-- Match behaviour, not formatting. Two different blocks can be the same check. Two similar `if`s can be different checks.
-- Explain in dependency order. A helper or shared check is explained before the blocks that use it. The first block in that order gets the full note.
+- Evidence over assumptions. A name's purpose in parentheses matches the code. Never add a purpose that the diff does not support.
+- Each piece gets its own pseudocode. A pattern line or a diagram is extra, and only when it fits.
+- Match behaviour, not formatting. Two similar `if`s can be different checks.
 
 ## When not to post
 
@@ -91,12 +89,12 @@ python3 scripts/parse_pr_diff.py < pr.diff
 The JSON is the full block list. Do not skip an object because it looks small. A small object gets one comment. A very large object is split under "Large diffs". `changed_lines` holds each changed line and its number.
 
 4. Check "Already explained". If the review is already done, stop there.
-5. On a big pull request, follow "Big pull requests". Sub-agents do steps 6 to 9 for their blocks. The delegator joins repeated behaviour across those drafts and does step 10.
-6. Read product context from this repo, only for blocks that change what the product does: title, body, linked issues (`gh issue view` or `glab issue view`), and docs or comments next to the changed symbol on the latest commit of the change.
-7. Read codebase context from that same commit, only for those blocks: the changed symbol, and one existing place that already does this job.
-8. Order blocks so a definition is before its callers. Group blocks that implement the same behaviour. The earliest block in that group is the full note. The rest are references.
+5. Count the diff and follow "How many sub-agents". Spawn that many. Sub-agents do steps 6 to 9 for their blocks. The delegator posts in step 10.
+6. Read the changed symbol on the latest commit of the change, and one existing place that already does this job, so the pattern line can name that file.
+7. Draft pseudocode for every piece. Add a pattern line or a diagram only when it fits.
+8. Keep parser order.
 9. Draft every comment locally. Then run the checks below.
-10. Post full notes first. Read back their URLs. Post reference notes second, with those URLs. GitHub: [github-posting.md](references/github-posting.md). GitLab: [gitlab-posting.md](references/gitlab-posting.md).
+10. Post the pseudocode comments. GitHub: [github-posting.md](references/github-posting.md). GitLab: [gitlab-posting.md](references/gitlab-posting.md).
 11. Delete the JSON this run created. See "Cleanup".
 
 Re-fetch the latest commit of the change immediately before posting. On a line error, follow that host's retry once. Do not loop.
@@ -110,18 +108,25 @@ A block is already explained when that marker is on the same path and the same f
 - Every block is already explained. Stop. Tell the user this review is already on the pull request or merge request, and include the url. Do not draft. Do not post.
 - Some blocks are already explained. Tell the user which paths are done. Draft and post only the rest.
 
-## Big pull requests
+## How many sub-agents
 
-A pull request is big when it has more than 8 diff blocks, or more than about 400 changed lines. The current agent is the delegator. Sub-agents draft. The delegator posts.
+Count after dropping blocks that are already explained.
 
-1. Drop blocks that are already explained.
-2. Group the rest by file. Give each sub-agent about one to four files, and about 8 blocks at most.
-3. Spawn one sub-agent per group. Pass the commit sha, that group's block JSON, and these rules: draft full notes only, follow this skill, do not post.
-4. The delegator turns repeated behaviour across groups into reference notes, runs "Before posting", and posts.
+- `B` is the number of blocks left.
+- `L` is the number of changed lines in those blocks.
+- `from_blocks` is `(B + 7) // 8`.
+- `from_lines` is `(L + 399) // 400`.
+- `agents` is the larger of `from_blocks` and `from_lines`.
 
-Example: 20 files become about four sub-agents. The delegator posts one review.
+Tell the user `B`, `L`, and `agents` before any spawn.
 
-A smaller pull request stays with the current agent. When the host cannot spawn sub-agents, the current agent drafts the big pull request itself and tells the user the work stayed in one agent.
+When `agents` is 1, the current agent drafts. Spawn none.
+
+When `agents` is more than 1, the current agent is the delegator. Spawn exactly `agents` sub-agents. In parser order, the first `B % agents` sub-agents get `(B // agents) + 1` blocks. The rest get `B // agents` blocks. Pass the commit sha, that group's block JSON, and these rules: pseudocode is required, add a pattern line or a diagram only when it fits, follow this skill, do not post. The delegator checks the drafts and posts.
+
+Example: 20 blocks and 500 changed lines. `from_blocks` is 3, `from_lines` is 2, so spawn 3. Group sizes are 7, 7, and 6.
+
+When the host cannot spawn sub-agents, the current agent drafts the pull request itself and tells the user the work stayed in one agent.
 
 ## Cleanup
 
@@ -137,68 +142,37 @@ A piece is one function, class, component, or a short group of helpers that belo
 - Its tokens are the names and literals in that piece.
 - Pieces do not overlap, and together they cover every changed line in the block.
 - Do not split a short block, a lock file, or one straight function.
-- Same-behaviour rules still apply. A later piece that repeats an earlier one is a reference note.
+- Each piece gets its own pseudocode.
 
 ## Comment shape
 
-Every comment starts with this line, including references. The comment body starts on the next line. Leave a blank line between the product line, the pattern, and the pseudocode. If a new line after the marker is not possible, use `PR-DIFF-EXPLAIN AGENT:` and start the comment after the colon.
+Every comment starts with this line. The pseudocode starts on the next line. If a new line after the marker is not possible, use `PR-DIFF-EXPLAIN AGENT:` and start the pseudocode after the colon.
 
 ```text
 PR-DIFF-EXPLAIN-AGENT
-<comment starts here>
+<pseudocode starts here>
 ```
 
 GitLab keeps that note. A note that starts with `<` is posted as only `<`.
 
 ### Full note
 
-Use a section only when it has something true to say. Omit empty sections.
+Pseudocode is required. Add **Pattern** only after you have opened an existing example. One or two lines. Name the file. Omit it when you did not find one. Add one diagram only when the pseudocode still hides the order.
 
 ~~~~markdown
 PR-DIFF-EXPLAIN-AGENT
-<one line of product behaviour>
-
-**Pattern:** <one or two lines>. Current code already does <this>. Same as `<file>`.
-
 ```text
 <pseudocode>
 ```
+
+**Pattern:** <one or two lines>. Current code already does <this>. Same as `<file>`.
 ~~~~
 
-If the product claim is not confirmed, replace that line with:
-
-```markdown
-**Inferred:** <one line>. Not confirmed in the repo or the PR.
-```
-
-A confirmed product line and **Inferred** stay off the same claim. Add Mermaid only under the diagram rule.
-
-- A product line or **Inferred**, never both for the same claim. Skip both when the block does not change product behaviour (rename, format, types only, lockfile).
-- **Pattern** only after you have opened an existing example. One or two lines. Name the file. If you did not find one, omit it. Do not invent a pattern.
-- Pseudocode is required for source changes.
-- Mermaid is optional. See the diagram rule.
-
-### Reference note
-
-Use the user's words. No product line, no pattern, no pseudocode, no diagram.
-
-```markdown
-PR-DIFF-EXPLAIN-AGENT
-This was already explained in <url>. Same <one-line behaviour> reused here.
-```
-
-Name the behaviour (`Same daily cap check reused here.`). Do not say "same logic" with no behaviour.
-
-If the URL cannot be matched, still do not repeat the explanation:
-
-```markdown
-PR-DIFF-EXPLAIN-AGENT
-This was already explained on `<path>` line <n>. Same <one-line behaviour> reused here.
-```
+- A rename, format-only change, or lock file still gets one comment. For a lock file, list the package and version as lines. Skip pattern and diagram there.
 
 ### Dependency lock files, generated files, format-only
 
-A lock file pins dependency versions (`package-lock.json`, `yarn.lock`, `Gemfile.lock`, `go.sum`, and the same kind of file). Still one comment, so the block is covered. State what changed in one or two lines (package and version, or "indentation only"). Do not annotate every lock-file line. Do not use that short note as the explanation later blocks point at.
+A lock file pins dependency versions (`package-lock.json`, `yarn.lock`, `Gemfile.lock`, `go.sum`, and the same kind of file). Still one comment, so the block is covered. List package and version as lines. Do not annotate every lock-file line.
 
 ## Pseudocode
 
@@ -234,15 +208,6 @@ if (remaining === 0) return 0
 return remaining
 ```
 
-## Same behaviour
-
-Same behaviour means the same decision, on the same kind of data, for the same outcome.
-
-- Same: two handlers both stop create when `remaining === 0`.
-- Not the same: one checks `remaining === 0`, another checks `role === "admin"`.
-
-The full note is the earliest block in dependency order. A helper counts as earlier than its caller.
-
 ## Diagram
 
 Add one Mermaid diagram only when the pseudocode still hides the order: several branches, a loop with an early exit, or a handoff across files. Skip a single `if` and any straight-line block.
@@ -253,8 +218,7 @@ Use the same names as the diff. About eight nodes or fewer. `flowchart TD`. No s
 
 - Every JSON block is covered. A small block is one comment. A split block's comments cover every changed line, with no overlap. `anchor: line` becomes a line comment. `anchor: review_body` is one line in the GitHub review summary, or a GitLab file comment with no line.
 - Every full source note includes every token for its own lines. A split comment does not repeat tokens from another piece.
-- Reference notes contain `This was already explained` and no pseudocode.
-- No second full note for the same behaviour.
+- Every source comment includes pseudocode. Pattern and diagram appear only when they fit that piece.
 - A comment that already has `PR-DIFF-EXPLAIN-AGENT`, `PR-DIFF-EXPLAIN AGENT:`, or `<!-- pr-diff-explain -->` on the same path and the same first line is left as-is. One comment on a file's last line does not cover earlier pieces.
 
 Worked examples: [examples.md](references/examples.md).
