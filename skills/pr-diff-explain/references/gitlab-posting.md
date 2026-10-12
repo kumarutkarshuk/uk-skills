@@ -21,17 +21,17 @@ Use `sha` as the latest commit. Use `title`, `description`, and `web_url` from t
 glab api "projects/:id/merge_requests/<id>/discussions"
 ```
 
-Skip a block when a note body contains `<!-- pr-diff-explain -->` and the discussion position matches that path and end line.
+Skip a note when its body contains `<!-- pr-diff-explain -->` and the discussion position matches that path and the first line of that block or piece. A note on a file's last line does not cover earlier pieces of a large diff.
 
 ## Full notes
 
-Added lines. Use the parser `start_line` and `line`. If there is no `start_line`, pass only `line`.
+The note sits on the first changed line only. Do not pass a start:end range. A split comment uses the first `changed_lines` number of its own piece.
 
 ```bash
-glab mr note create <id> --file <path> --line <start>:<end> -m "$(cat "$note")"
+glab mr note create <id> --file <path> --line <line> -m "$(cat "$note")"
 ```
 
-Removed lines only. `--old-line` takes one line. Pass the parser end `line`. The body still covers the whole block.
+Removed lines only. `--old-line` takes one line. Pass the first removed line. The body still explains the whole block.
 
 ```bash
 glab mr note create <id> --file <path> --old-line <line> -m "$(cat "$note")"
@@ -47,4 +47,4 @@ Post the reference sentence with `glab mr note create` on that block's file and 
 
 ## Retry once
 
-If GitLab says the line is not in the diff, post again with only the end line. Drop the `:end` range. If the second try fails, leave that block in the chat and say it was not posted.
+If GitLab says the line is not in the diff, post again on the next changed line in that piece. Do not send a line range. If the second try fails, leave that block in the chat and say it was not posted.

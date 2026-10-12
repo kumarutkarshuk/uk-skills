@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Split a pull request diff into one block per review comment.
+"""Split a pull request diff into one block per hunk.
 
-Reviewers get one note per changed region. This list is that region list,
-so a later note can point at the first explanation instead of repeating it.
+A small hunk is one review comment. A very large hunk, such as a new file,
+can become several comments. Each changed line keeps its number so those
+comments can sit on the right piece.
 """
 
 import json
@@ -127,33 +128,45 @@ def parse_diff(text):
 
 
 def _finish(block):
-    """Pick the GitHub line that can hold the comment for this block."""
+    """Put the comment on the first changed line. Later lines stay in the body only."""
     added = [item for item in block["lines"] if item["kind"] == "add"]
     removed = [item for item in block["lines"] if item["kind"] == "del"]
+    # Line numbers let a large new file get one comment per function, on that function's first line.
     record = {
         "header": block["header"],
         "added": [item["text"] for item in added],
         "removed": [item["text"] for item in removed],
+        "changed_lines": _changed_lines(
+            [item for item in block["lines"] if item["kind"] != "context"]
+        ),
         "tokens": _tokens(added + removed),
     }
     if added:
         start = added[0]["new_line"]
-        end = added[-1]["new_line"]
         side = "RIGHT"
     elif removed:
         start = removed[0]["old_line"]
-        end = removed[-1]["old_line"]
         side = "LEFT"
     else:
         record["anchor"] = "review_body"
         return record
     record["anchor"] = "line"
     record["side"] = side
-    record["line"] = end
-    if start != end:
-        record["start_line"] = start
-        record["start_side"] = side
+    record["line"] = start
     return record
+
+
+def _changed_lines(items):
+    """Keep each changed line's number so a split comment can name its first line."""
+    rows = []
+    for item in items:
+        row = {"kind": item["kind"], "text": item["text"]}
+        if "new_line" in item:
+            row["new_line"] = item["new_line"]
+        if "old_line" in item:
+            row["old_line"] = item["old_line"]
+        rows.append(row)
+    return rows
 
 
 def _tokens(items):
@@ -274,17 +287,18 @@ diff --git a/src/one.ts b/src/one.ts
         "src/one.ts#1",
     ], list(by_id)
     cap = by_id["src/limit.ts#1"]
-    assert cap["side"] == "RIGHT"
-    assert cap["start_line"] == 2 and cap["line"] == 4
+    assert cap["side"] == "RIGHT" and cap["line"] == 2
+    assert "start_line" not in cap
+    assert cap["changed_lines"][1]["kind"] == "add" and cap["changed_lines"][1]["new_line"] == 2
     assert "remaining" in cap["tokens"] and "limit" in cap["tokens"]
     assert "0" in cap["tokens"]
     assert "return" not in cap["tokens"]
     gone = by_id["src/old.ts#1"]
-    assert gone["side"] == "LEFT" and gone["start_line"] == 2 and gone["line"] == 3
+    assert gone["side"] == "LEFT" and gone["line"] == 2
     picture = by_id["src/pic.bin#file"]
     assert picture["anchor"] == "review_body" and picture["path"] == "src/pic.bin"
     one = by_id["src/one.ts#1"]
-    assert one["side"] == "RIGHT" and one["start_line"] == 10 and one["line"] == 11
+    assert one["side"] == "RIGHT" and one["line"] == 10
     print("ok")
 
 

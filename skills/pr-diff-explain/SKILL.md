@@ -1,8 +1,9 @@
 ---
 name: pr-diff-explain
 description: >-
-  Writes one review comment on every diff block of a GitHub pull request
-  or GitLab merge request, so reviewers can understand AI-written changes
+  Writes a review comment on every diff block of a GitHub pull request
+  or GitLab merge request. A very large block, such as a new file, can
+  get several comments, one per piece, so reviewers can understand AI-written changes
   without re-reading the product or the codebase. A full comment is concise
   pseudocode that keeps every changed name, literal, and operator, with each
   name's purpose in parentheses, plus a short verified product or
@@ -16,14 +17,14 @@ description: >-
 license: MIT
 compatibility: Requires Python 3, a local checkout of the change's repo, and a logged-in GitHub CLI (gh) or GitLab CLI (glab).
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # PR diff explain
 
 Explain a GitHub pull request or a GitLab merge request. Do not review it for style, bugs, or approval.
 
-A **diff block** is one `@@` hunk. Every block gets exactly one comment.
+A **diff block** is one `@@` hunk. A small block gets one comment. A very large block gets several comments, one per piece. A new file is the usual case. The comment sits on the first changed line of that block or piece only. It does not span the later lines.
 
 ## Host tool
 
@@ -85,7 +86,7 @@ Do not suggest refactors. Do not write "LGTM".
 python3 scripts/parse_pr_diff.py < pr.diff
 ```
 
-The JSON is the full block list. One output object, one comment. Do not skip an object because it looks small.
+The JSON is the full block list. Do not skip an object because it looks small. A small object gets one comment. A very large object is split under "Large diffs". `changed_lines` holds each changed line and its number.
 
 4. Read product context from this repo, only for blocks that change what the product does: title, body, linked issues (`gh issue view` or `glab issue view`), and docs or comments next to the changed symbol on the latest commit of the change.
 5. Read codebase context from that same commit, only for those blocks: the changed symbol, and one existing place that already does this job.
@@ -94,6 +95,18 @@ The JSON is the full block list. One output object, one comment. Do not skip an 
 8. Post full notes first. Read back their URLs. Post reference notes second, with those URLs. GitHub: [github-posting.md](references/github-posting.md). GitLab: [gitlab-posting.md](references/gitlab-posting.md).
 
 Re-fetch the latest commit of the change immediately before posting. On a line error, follow that host's retry once. Do not loop.
+
+## Large diffs
+
+Split a block when one comment would hide later parts. Do this when the block is a new file with more than one piece, or when it has more than about 80 changed lines and more than one piece.
+
+A piece is one function, class, component, or a short group of helpers that belong together. Example: a new `auth.ts` with `login`, `logout`, and `refresh` gets three comments, one on each function. A 12-line bugfix stays one comment.
+
+- Each comment sits on the first changed line of that piece. Take that number from `changed_lines`. Do not set `start_line`. The body still explains the whole piece.
+- Its tokens are the names and literals in that piece.
+- Pieces do not overlap, and together they cover every changed line in the block.
+- Do not split a short block, a lock file, or one straight function.
+- Same-behaviour rules still apply. A later piece that repeats an earlier one is a reference note.
 
 ## Comment shape
 
@@ -197,10 +210,10 @@ Use the same names as the diff. About eight nodes or fewer. `flowchart TD`. No s
 
 ## Before posting
 
-- Comment count equals the JSON list. `anchor: line` becomes a line comment. `anchor: review_body` is one line in the GitHub review summary, or a GitLab file comment with no line.
-- Every full source note includes every token for that block.
+- Every JSON block is covered. A small block is one comment. A split block's comments cover every changed line, with no overlap. `anchor: line` becomes a line comment. `anchor: review_body` is one line in the GitHub review summary, or a GitLab file comment with no line.
+- Every full source note includes every token for its own lines. A split comment does not repeat tokens from another piece.
 - Reference notes contain `This was already explained` and no pseudocode.
 - No second full note for the same behaviour.
-- A block that already has a `<!-- pr-diff-explain -->` comment on the same path and end line is left as-is.
+- A comment that already has `<!-- pr-diff-explain -->` on the same path and the same first line is left as-is. One comment on a file's last line does not cover earlier pieces.
 
 Worked examples: [examples.md](references/examples.md).
